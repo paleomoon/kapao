@@ -13,6 +13,7 @@ from models.experimental import attempt_load
 from val import run_nms, post_process_batch
 import cv2
 import os.path as osp
+import time
 
 
 if __name__ == '__main__':
@@ -77,15 +78,18 @@ if __name__ == '__main__':
     if len(img.shape) == 3:
         img = img[None]  # expand for batch dim
 
+    now = time.time()
     out = model(img, augment=True, kp_flip=data['kp_flip'], scales=data['scales'], flips=data['flips'])[0]
     person_dets, kp_dets = run_nms(data, out)
+    then = time.time()
+    print("Find person pose in: {} sec".format(then - now))
 
     if args.bbox:
         bboxes = scale_coords(img.shape[2:], person_dets[0][:, :4], im0.shape[:2]).round().cpu().numpy()
         for x1, y1, x2, y2 in bboxes:
             cv2.rectangle(im0, (int(x1), int(y1)), (int(x2), int(y2)), args.color_pose, thickness=args.line_thick)
 
-    _, poses, _, _, _ = post_process_batch(data, img, [], [[im0.shape[:2]]], person_dets, kp_dets)
+    _, poses, _, _, _ = post_process_batch(data, img, [], [[im0.shape[:2]]], person_dets, kp_dets) # 缩放坐标、融合pose object和keypoint object
 
     if args.pose:
         for pose in poses:

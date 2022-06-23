@@ -52,7 +52,7 @@ def post_process_batch(data, imgs, paths, shapes, person_dets, kp_dets,
 
     # process each image in batch
     for si, (pd, kpd, origin) in enumerate(zip(person_dets, kp_dets, origins)):
-        nd = pd.shape[0]
+        nd = pd.shape[0] # num
         nkp = kpd.shape[0]
 
         if nd:
@@ -96,28 +96,28 @@ def post_process_batch(data, imgs, paths, shapes, person_dets, kp_dets,
             else:
                 scores = pd[:, 4].cpu().numpy()  # person detection score
                 bboxes = scale_coords(imgs[si].shape[1:], pd[:, :4], shape).round().cpu().numpy()
-                poses = scale_coords(imgs[si].shape[1:], pd[:, -data['num_coords']:], shape).cpu().numpy()
+                poses = scale_coords(imgs[si].shape[1:], pd[:, -data['num_coords']:], shape).cpu().numpy() # pose object中所有关键点坐标
                 poses = poses.reshape((nd, -data['num_coords'], 2))
-                poses = np.concatenate((poses, np.zeros((nd, poses.shape[1], 1))), axis=-1)
+                poses = np.concatenate((poses, np.zeros((nd, poses.shape[1], 1))), axis=-1) # (n,17,2) -> (n,17,3)
 
                 if data['use_kp_dets'] and nkp:
-                    mask = scores > data['conf_thres_kp_person']
+                    mask = scores > data['conf_thres_kp_person'] # person object阈值过滤
                     poses_mask = poses[mask]
 
-                    if len(poses_mask):
+                    if len(poses_mask): # 这里有n个person object
                         kpd[:, :4] = scale_coords(imgs[si].shape[1:], kpd[:, :4], shape)
-                        kpd = kpd[:, :6].cpu()
+                        kpd = kpd[:, :6].cpu() # 这里有m个keypoint object
 
-                        for x1, y1, x2, y2, conf, cls in kpd:
-                            x, y = np.mean((x1, x2)), np.mean((y1, y2))
-                            pose_kps = poses_mask[:, int(cls - 1)]
-                            dist = np.linalg.norm(pose_kps[:, :2] - np.array([[x, y]]), axis=-1)
-                            kp_match = np.argmin(dist)
+                        for x1, y1, x2, y2, conf, cls in kpd: # 单个keypoint object
+                            x, y = np.mean((x1, x2)), np.mean((y1, y2)) # keypoint object bbox center
+                            pose_kps = poses_mask[:, int(cls - 1)] # (n, pose object中该关键点坐标+分数(0))
+                            dist = np.linalg.norm(pose_kps[:, :2] - np.array([[x, y]]), axis=-1) # n个pose object中该关键点与对应的keypoint object bbox中心的距离
+                            kp_match = np.argmin(dist) # n中距离最小的位置索引
                             if conf > pose_kps[kp_match, 2] and dist[kp_match] < data['overwrite_tol']:
-                                pose_kps[kp_match] = [x, y, conf]
+                                pose_kps[kp_match] = [x, y, conf] # 最关键的点：将pose object中的关键点坐标替换为距离最近的同类keypoint object中心点和分数
                                 if data['count_fused']:
-                                    n_fused[int(cls - 1)] += 1
-                        poses[mask] = poses_mask
+                                    n_fused[int(cls - 1)] += 1 # fused关键点+1
+                        poses[mask] = poses_mask # pose_kps与poses_mask、poses共享内存，这里的作用？
 
                 poses = [p + origin for p in poses]
 

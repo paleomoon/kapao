@@ -690,13 +690,13 @@ def non_max_suppression_kp(prediction, conf_thres=0.25, iou_thres=0.45, classes=
         box = xywh2xyxy(x[:, :4])
 
         # Detections matrix nx6 (xyxy, conf, cls)
-        conf, j = x[:, 5:-num_coords].max(1, keepdim=True)
+        conf, j = x[:, 5:-num_coords].max(1, keepdim=True) # j为类别序号，0:pose object,1~17：keypoint object
         kp = x[:, -num_coords:]
-        x = torch.cat((box, conf, j.float(), kp), 1)[conf.view(-1) > conf_thres]
+        x = torch.cat((box, conf, j.float(), kp), 1)[conf.view(-1) > conf_thres] # shape:(n, 40),box排前面，类别分数已经去除
 
         # Filter by class
         if classes is not None:
-            x = x[(x[:, 5:6] == torch.tensor(classes, device=x.device)).any(1)]
+            x = x[(x[:, 5:6] == torch.tensor(classes, device=x.device)).any(1)] # any(1): return True if any True element in dim 1, return 1 fewer dim
 
         # Apply finite constraint
         # if not torch.isfinite(x).all():
