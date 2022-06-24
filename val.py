@@ -108,9 +108,9 @@ def post_process_batch(data, imgs, paths, shapes, person_dets, kp_dets,
                         kpd[:, :4] = scale_coords(imgs[si].shape[1:], kpd[:, :4], shape)
                         kpd = kpd[:, :6].cpu() # 这里有m个keypoint object
 
-                        for x1, y1, x2, y2, conf, cls in kpd: # 单个keypoint object
+                        for x1, y1, x2, y2, conf, cls in kpd: # 单个keypoint object，cls从1开始
                             x, y = np.mean((x1, x2)), np.mean((y1, y2)) # keypoint object bbox center
-                            pose_kps = poses_mask[:, int(cls - 1)] # (n, pose object中该关键点坐标+分数(0))
+                            pose_kps = poses_mask[:, int(cls - 1)] # (n, 所有pose object中该关键点坐标+分数(0))，cls从1开始所以 - 1
                             dist = np.linalg.norm(pose_kps[:, :2] - np.array([[x, y]]), axis=-1) # n个pose object中该关键点与对应的keypoint object bbox中心的距离
                             kp_match = np.argmin(dist) # n中距离最小的位置索引
                             if conf > pose_kps[kp_match, 2] and dist[kp_match] < data['overwrite_tol']:

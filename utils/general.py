@@ -710,7 +710,7 @@ def non_max_suppression_kp(prediction, conf_thres=0.25, iou_thres=0.45, classes=
             x = x[x[:, 4].argsort(descending=True)[:max_nms]]  # sort by confidence
 
         # Batched NMS
-        c = x[:, 5:6] * max_wh  # classes
+        c = x[:, 5:6] * max_wh  # classes, always multiply max_wh, 因为对于不同关键点是不同类别，为避免重合度高的关键点被nms删除，不同关键点加一个不同offset
         boxes, scores = x[:, :4] + c, x[:, 4]  # boxes (offset by class), scores
         i = torchvision.ops.nms(boxes, scores, iou_thres)  # NMS
         if i.shape[0] > max_det:  # limit detections

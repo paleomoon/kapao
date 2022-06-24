@@ -92,7 +92,7 @@ def export_onnx(model, img, file, opset, train, dynamic, simplify):
         print(f'{prefix} export failure: {e}')
 
 def run(weights='./yolov5s.pt',  # weights path
-        img_size=(640, 640),  # image (height, width)
+        img_size=(768, 1280),  # image (height, width)
         batch_size=1,  # batch size
         device='cpu',  # cuda device, i.e. 0 or 0,1,2,3 or cpu
         include=('torchscript', 'onnx'),  # include formats
@@ -137,6 +137,7 @@ def run(weights='./yolov5s.pt',  # weights path
 
     for _ in range(2):
         y = model(img)  # dry runs
+        print(y[0].shape)
     print(f"\n{colorstr('PyTorch:')} starting from {weights} ({file_size(weights):.1f} MB)")
 
     # Exports
@@ -154,7 +155,7 @@ def run(weights='./yolov5s.pt',  # weights path
 def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', type=str, default='./yolov5s.pt', help='weights path')
-    parser.add_argument('--img-size', nargs='+', type=int, default=[640, 640], help='image (height, width)')
+    parser.add_argument('--img-size', nargs='+', type=int, default=[768, 1280], help='image (height, width)')
     parser.add_argument('--batch-size', type=int, default=1, help='batch size')
     parser.add_argument('--device', default='cpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--include', nargs='+', default=['torchscript', 'onnx', 'coreml'], help='include formats')

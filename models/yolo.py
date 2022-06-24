@@ -86,6 +86,7 @@ class Detect(nn.Module):
 
 
 class Model(nn.Module):
+    onnx_export = False # for onnx single output
     def __init__(self, cfg='yolov5s.yaml', ch=3, nc=None, anchors=None, num_coords=0, autobalance=False):  # model, input channels, number of classes
         super().__init__()
         if isinstance(cfg, dict):
@@ -178,7 +179,7 @@ class Model(nn.Module):
 
         if profile:
             LOGGER.info('%.1fms total' % sum(dt))
-        return x
+        return x[0] if self.onnx_export else x
 
     def _descale_pred(self, p, flips, scale, img_size, kp_flip):
         # de-scale predictions following augmented inference (inverse operation)
