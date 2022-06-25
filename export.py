@@ -72,6 +72,24 @@ def export_onnx(model, img, file, opset, train, dynamic, simplify):
         onnx.checker.check_model(model_onnx)  # check onnx model
         # print(onnx.helper.printable_graph(model_onnx.graph))  # print
 
+        # check result
+        import onnxruntime
+        import numpy as np
+        # model = attempt_load("kapao_l_coco.pt")
+        # input = torch.rand(1, 3, 768, 1280) 
+        input = np.load("img.npy") # use exactly image data instead
+        torch_output = model(torch.from_numpy(input)).detach().numpy() 
+        print("--------------")
+        print(torch_output[0,0,:])
+
+        sess = onnxruntime.InferenceSession(str(f)) 
+        ort_output = sess.run(['output'], {'images': input})[0] 
+        print("--------------")
+        print(ort_output[0,0,:])
+        print(torch_output[0,-1,:])
+        print(ort_output[0,-1,:])
+        assert np.allclose(torch_output, ort_output, rtol=1e-02, atol=1e-02) # use bigger tolerance than default, orthewise error
+
         # Simplify
         if simplify:
             try:
@@ -126,13 +144,15 @@ def run(weights='./yolov5s.pt',  # weights path
     model.train() if train else model.eval()  # training mode = no Detect() layer grid construction
     for k, m in model.named_modules():
         if isinstance(m, Conv):  # assign export-friendly activations
-            if isinstance(m.act, nn.Hardswish):
-                m.act = Hardswish()
-            elif isinstance(m.act, nn.SiLU):
+            # if isinstance(m.act, nn.Hardswish):
+            #     m.act = Hardswish()
+            # elif isinstance(m.act, nn.SiLU):
+            #     m.act = SiLU()
+            if isinstance(m.act, nn.SiLU):
                 m.act = SiLU()
         elif isinstance(m, Detect):
             m.inplace = inplace
-            m.onnx_dynamic = dynamic
+            # m.onnx_dynamic = dynamic # no need this if just dynamic batch
             # m.forward = m.forward_export  # assign forward (optional)
 
     for _ in range(2):
@@ -144,6 +164,7 @@ def run(weights='./yolov5s.pt',  # weights path
     if 'torchscript' in include:
         export_torchscript(model, img, file, optimize)
     if 'onnx' in include:
+        model.onnx_export = True # # for onnx single output
         export_onnx(model, img, file, opset, train, dynamic, simplify)
 
     # Finish

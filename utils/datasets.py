@@ -232,7 +232,7 @@ class LoadImages:  # for inference
 
         # Padded resize
         img = letterbox(img0, self.img_size, stride=self.stride, auto=self.auto)[0]
-
+        # cv2.imwrite("input.jpg",img)
         # Convert
         img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
         img = np.ascontiguousarray(img)

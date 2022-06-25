@@ -14,6 +14,7 @@ from val import run_nms, post_process_batch
 import cv2
 import os.path as osp
 import time
+import onnxruntime
 import numpy as np
 
 
@@ -22,7 +23,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--img-path', default='res/crowdpose_100024.jpg', help='path to image')
 
     # plotting options
-    parser.add_argument('--bbox', action='store_true')
+    parser.add_argument('--bbox', action='store_true', default=True)
     parser.add_argument('--kp-bbox', action='store_true')
     parser.add_argument('--pose', action='store_true')
     parser.add_argument('--face', action='store_true')
@@ -80,12 +81,13 @@ if __name__ == '__main__':
         img = img[None]  # expand for batch dim
 
     now = time.time()
-    # out = model(img, augment=False, kp_flip=data['kp_flip'], scales=data['scales'], flips=data['flips'])[0]
-    input = np.load("img.npy")
-    out = model(torch.from_numpy(input).to(device), augment=False, kp_flip=data['kp_flip'], scales=data['scales'], flips=data['flips'])[0]
-    print(out[0,0,:])
-    # np.save("img.npy", img.cpu().numpy())
-    person_dets, kp_dets = run_nms(data, out)
+    # out = model(img, augment=True, kp_flip=data['kp_flip'], scales=data['scales'], flips=data['flips'])[0]
+    sess = onnxruntime.InferenceSession('kapao_l_coco.onnx') 
+    out = sess.run(['output'], {'images': img.cpu().numpy()})[0] 
+    # input = np.load("img.npy")
+    # out = sess.run(['output'], {'images': input})[0] 
+    print(torch.from_numpy(out)[0,0,:])
+    person_dets, kp_dets = run_nms(data, torch.from_numpy(out).to(device))
     then = time.time()
     print("Find person pose in: {} sec".format(then - now))
 
