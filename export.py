@@ -76,8 +76,8 @@ def export_onnx(model, img, file, opset, train, dynamic, simplify):
         import onnxruntime
         import numpy as np
         # model = attempt_load("kapao_l_coco.pt")
-        # input = torch.rand(1, 3, 768, 1280) 
-        input = np.load("img.npy") # use exactly image data instead
+        input = torch.rand(1, 3, 768, 1280).numpy()  
+        # input = np.load("img.npy") # use exactly image data instead
         torch_output = model(torch.from_numpy(input)).detach().numpy() 
         print("--------------")
         print(torch_output[0,0,:])

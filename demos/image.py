@@ -80,9 +80,9 @@ if __name__ == '__main__':
         img = img[None]  # expand for batch dim
 
     now = time.time()
-    # out = model(img, augment=False, kp_flip=data['kp_flip'], scales=data['scales'], flips=data['flips'])[0]
-    input = np.load("img.npy")
-    out = model(torch.from_numpy(input).to(device), augment=False, kp_flip=data['kp_flip'], scales=data['scales'], flips=data['flips'])[0]
+    out = model(img, augment=False, kp_flip=data['kp_flip'], scales=data['scales'], flips=data['flips'])[0]
+    # input = np.load("img.npy")
+    # out = model(torch.from_numpy(input).to(device), augment=False, kp_flip=data['kp_flip'], scales=data['scales'], flips=data['flips'])[0]
     print(out[0,0,:])
     # np.save("img.npy", img.cpu().numpy())
     person_dets, kp_dets = run_nms(data, out)
