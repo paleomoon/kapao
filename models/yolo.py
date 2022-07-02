@@ -52,8 +52,8 @@ class Detect(nn.Module):
         z = []  # inference output
         for i in range(self.nl):
             x[i] = self.m[i](x[i])  # conv
-            bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
-            x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
+            bs, _, ny, nx = map(int, x[i].shape)  # x(bs,255,20,20) to x(bs,3,20,20,85), 这里将x[i].shape转为int，避免onnx导出产生（shape、gather、unsqueeze、concat）等算子。map(func,iter)对iter每个对象使用func函数
+            x[i] = x[i].view(-1, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous() # bs改为-1
 
             if not self.training:  # inference
                 if self.grid[i].shape[2:4] != x[i].shape[2:4] or self.onnx_dynamic:
