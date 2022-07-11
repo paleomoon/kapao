@@ -10,6 +10,8 @@ import argparse
 import sys
 from copy import deepcopy
 from pathlib import Path
+import torchvision
+from torch.onnx.symbolic_opset11 import select, squeeze, unsqueeze
 
 FILE = Path(__file__).absolute()
 sys.path.append(FILE.parents[1].as_posix())  # add yolov5/ to path
@@ -17,7 +19,7 @@ sys.path.append(FILE.parents[1].as_posix())  # add yolov5/ to path
 from models.common import *
 from models.experimental import *
 from utils.autoanchor import check_anchor_order
-from utils.general import make_divisible, check_file, set_logging
+from utils.general import make_divisible, check_file, set_logging, xywh2xyxy
 from utils.plots import feature_visualization
 from utils.torch_utils import time_sync, fuse_conv_and_bn, model_info, scale_img, initialize_weights, \
     select_device, copy_attr
@@ -91,6 +93,58 @@ class Detect(nn.Module):
     def _make_grid(nx=20, ny=20):
         yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
+
+# class NMS_F(torch.autograd.Function):
+#     """
+#     Customize an operator
+#     """
+
+#     @staticmethod
+#     def symbolic(g, boxes, scores, iou_threshold):
+#         """
+#         Define the mapping
+#         """
+#         boxes = unsqueeze(g, boxes, 0) # [num_batches, spatial_dimension, 4]
+#         scores = unsqueeze(g, unsqueeze(g, scores, 0), 0) # [num_batches, num_classes, spatial_dimension]
+#         max_output_per_class = g.op("Constant", value_t=torch.tensor([sys.maxsize], dtype=torch.long))
+#         iou_threshold = g.op("Constant", value_t=torch.tensor([iou_threshold], dtype=torch.float))
+#         nms_out = g.op("NonMaxSuppression", boxes, scores, max_output_per_class, iou_threshold) # [num_selected_indices, 3], 3 means [batch_index, class_index, box_index]
+#         return squeeze(g, select(g, nms_out, 1, g.op("Constant", value_t=torch.tensor([2], dtype=torch.long))), 1) # select box_index
+
+#     @staticmethod
+#     def forward(ctx, boxes, scores, iou_threshold):
+#         """
+#         Define the behavior
+#         """
+#         keep = torchvision.ops.nms(boxes, scores, iou_threshold)
+#         return keep
+        
+# class NMS(nn.Module):
+#     """
+#     NMS Module
+#     """
+#     def __init__(self, num_coords=34, max_nms=30000, max_wh=4096, max_det=300):
+#         super().__init__()
+#         self.nms_func = NMS_F.apply
+#         self.num_coords = num_coords
+#         self.max_nms = max_nms
+#         self.max_wh = max_wh
+#         self.max_det = max_det
+
+#     def forward(self, x, iou_threshold, conf_thres):
+#         conf = x[:, 5:-self.num_coords] * x[:, 4:5]
+#         box = xywh2xyxy(x[:, :4])
+#         max_conf, j = conf.max(1, keepdim=True)
+#         y = torch.cat((box, max_conf, j.float()), 1)[max_conf.view(-1) > conf_thres]
+#         if y.shape[0] > self.max_nms:  # excess boxes
+#             y = y[y[:, 4].argsort(descending=True)[:self.max_nms]]
+#         boxes, scores = y[:, :4] + y[:, 5:6] * self.max_wh, y[:, 4]
+#         i = self.nms_func(boxes, scores, iou_threshold)
+#         if i.shape[0] > self.max_det:  # limit detections
+#             i = i[:self.max_det]
+#         output = [torch.zeros(0, 6)] * x.shape[0]
+
+#         return y[i]
 
 
 class Model(nn.Module):

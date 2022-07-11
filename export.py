@@ -19,7 +19,7 @@ FILE = Path(__file__).absolute()
 sys.path.append(FILE.parents[0].as_posix())  # add yolov5/ to path
 
 from models.common import Conv
-from models.yolo import Detect
+from models.yolo import Detect, NMS
 from models.experimental import attempt_load
 from utils.activations import Hardswish, SiLU
 from utils.general import colorstr, check_img_size, check_requirements, file_size, set_logging
@@ -154,6 +154,9 @@ def run(weights='./yolov5s.pt',  # weights path
             m.inplace = inplace
             # m.onnx_dynamic = dynamic # no need this if just dynamic batch
             # m.forward = m.forward_export  # assign forward (optional)
+
+    # model.add_module("NMS",NMS())
+    # iou_threshold = torch.tensor(0.45, dtype=torch.float) 
 
     for _ in range(2):
         y = model(img)  # dry runs
