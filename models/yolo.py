@@ -118,33 +118,43 @@ class Detect(nn.Module):
 #         """
 #         keep = torchvision.ops.nms(boxes, scores, iou_threshold)
 #         return keep
-        
+
 # class NMS(nn.Module):
 #     """
 #     NMS Module
 #     """
-#     def __init__(self, num_coords=34, max_nms=30000, max_wh=4096, max_det=300):
+#     def __init__(self, iou_threshold, conf_thres, num_coords=34, max_nms=30000, max_wh=4096, max_det=300):
 #         super().__init__()
 #         self.nms_func = NMS_F.apply
 #         self.num_coords = num_coords
 #         self.max_nms = max_nms
 #         self.max_wh = max_wh
 #         self.max_det = max_det
+#         self.iou_threshold = iou_threshold
+#         self.conf_thres = conf_thres
+#         self.f = -1
+#         self.i = -1
 
-#     def forward(self, x, iou_threshold, conf_thres):
-#         conf = x[:, 5:-self.num_coords] * x[:, 4:5]
-#         box = xywh2xyxy(x[:, :4])
-#         max_conf, j = conf.max(1, keepdim=True)
-#         y = torch.cat((box, max_conf, j.float()), 1)[max_conf.view(-1) > conf_thres]
-#         if y.shape[0] > self.max_nms:  # excess boxes
-#             y = y[y[:, 4].argsort(descending=True)[:self.max_nms]]
-#         boxes, scores = y[:, :4] + y[:, 5:6] * self.max_wh, y[:, 4]
-#         i = self.nms_func(boxes, scores, iou_threshold)
-#         if i.shape[0] > self.max_det:  # limit detections
-#             i = i[:self.max_det]
-#         output = [torch.zeros(0, 6)] * x.shape[0]
-
-#         return y[i]
+#     def forward(self, predict):
+#         pre = predict[0]
+#         output = torch.zeros(pre.shape[0], 300, 57)
+#         for xi,x in enumerate(pre):
+#             conf = x[:, 5:-self.num_coords] * x[:, 4:5]
+#             box = xywh2xyxy(x[:, :4])
+#             max_conf, j = conf.max(1, keepdim=True)
+#             kp = x[:, -self.num_coords:]
+#             y = torch.cat((box, max_conf, j.float(), kp), 1)[max_conf.view(-1) > self.conf_thres]
+#             n = y.shape[0]  # number of boxes
+#             # if not n:  # no boxes
+#             #     continue
+#             # elif y.shape[0] > self.max_nms:  # excess boxes
+#             #     y = y[y[:, 4].argsort(descending=True)[:self.max_nms]]
+#             boxes, scores = y[:, :4] + y[:, 5:6] * self.max_wh, y[:, 4]
+#             i = self.nms_func(boxes, scores, self.iou_threshold)
+#             if i.shape[0] > self.max_det:  # limit detections
+#                 i = i[:self.max_det]
+#             output[xi] = x[i]
+#         return output
 
 
 class Model(nn.Module):

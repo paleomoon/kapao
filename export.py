@@ -133,6 +133,10 @@ def run(weights='./yolov5s.pt',  # weights path
     model = attempt_load(weights, map_location=device)  # load FP32 model
     names = model.names
 
+    # model.model.add_module("NMS",NMS(0.45, 0)) # Model对象的model成员才是nn.Sequential
+    # print(model)
+    # iou_threshold = torch.tensor(0.45, dtype=torch.float) 
+
     # Input
     gs = int(max(model.stride))  # grid size (max stride)
     img_size = [check_img_size(x, gs) for x in img_size]  # verify img_size are gs-multiples
@@ -154,9 +158,6 @@ def run(weights='./yolov5s.pt',  # weights path
             m.inplace = inplace
             # m.onnx_dynamic = dynamic # no need this if just dynamic batch
             # m.forward = m.forward_export  # assign forward (optional)
-
-    # model.add_module("NMS",NMS())
-    # iou_threshold = torch.tensor(0.45, dtype=torch.float) 
 
     for _ in range(2):
         y = model(img)  # dry runs
